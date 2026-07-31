@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  nom          String
+  email        String     @unique
+  motDePasse   String
+  role         String
+  statut       String
+  vendeur      Vendeur?
+  panier       Panier?
+  avis         Avis[]
+  favoris      Favoris[]
+  commandes    Commande[]
+  dateCreation DateTime   @default(now())
+}
+
+model Cooperative {
+  id           Int     @id @default(autoincrement())
+  nom          String
+  adresse      String?
+  quotaGratuit Int     @default(50)
+
+  createdAt DateTime @default(now())
+
+  vendeurs Vendeur[]
+}
+
+model Vendeur {
+  id Int @id @default(autoincrement())
+
+  utilisateurId Int @unique
+  coopId        Int
+
+  statutValidation String    @default("en_attente")
+  dateValidation   DateTime?
+
+  utilisateur User        @relation(fields: [utilisateurId], references: [id])
+  cooperative Cooperative @relation(fields: [coopId], references: [id])
+  produits    Produit[]
+  createdAt   DateTime    @default(now())
+}
+
+model Produit {
+  id          Int @id @default(autoincrement())
+  nom         String
+  description String?
+  prixMin     Float?
+
+  vendeurId   Int
+  categorieId Int
+
+  vendeur   Vendeur   @relation(fields: [vendeurId], references: [id])
+  categorie Categorie @relation(fields: [categorieId], references: [id])
+
+  statutValidation String    @default("en_attente")
+  datePublication  DateTime?
+
+  variantes      VarianteProduit[]
+  images         ImageProduit[]
+  certifications ProduitCertification[]
+  avis           Avis[]
+  favoris        Favoris[]
+  panierItems    PanierItem[]
+
+  createdAt DateTime @default(now())
+}
+
+model Categorie {
+  id  Int    @id @default(autoincrement())
+  nom String
+
+  produits Produit[]
+
+  createdAt DateTime @default(now())
+}
+
+model VarianteProduit {
+  id Int @id @default(autoincrement())
+
+  produitId      Int
+  quantite       Float
+  unite          String
+  prix           Float
+  stock          Int
+  lignesCommande LigneCommande[]
+  produit        Produit         @relation(fields: [produitId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([produitId, quantite, unite])
+}
+
+model ImageProduit {
+  id Int @id @default(autoincrement())
+
+  produitId Int
+  url       String
+  ordre     Int    @default(0)
+
+  produit Produit @relation(fields: [produitId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model ProduitCertification {
+  produitId       Int
+  certificationId Int
+  organisme       String?
+
+  produit       Produit       @relation(fields: [produitId], references: [id])
+  certification Certification @relation(fields: [certificationId], references: [id])
+
+  @@id([produitId, certificationId])
+}
+
+model Certification {
+  id Int @id @default(autoincrement())
+
+  nom         String
+  organisme   String?
+  description String?
+
+  produits ProduitCertification[]
+
+  createdAt DateTime @default(now())
+}
+
+model Avis {
+  id Int @id @default(autoincrement())
+
+  produitId Int
+  clientId  Int
+
+  note        Int
+  commentaire String?
+  dateAvis    DateTime @default(now())
+
+  produit Produit @relation(fields: [produitId], references: [id])
+  client  User    @relation(fields: [clientId], references: [id])
+
+  @@unique([produitId, clientId])
+}
+
+model Favoris {
+  clientId  Int
+  produitId Int
+
+  dateAjout DateTime @default(now())
+
+  client  User    @relation(fields: [clientId], references: [id])
+  produit Produit @relation(fields: [produitId], references: [id])
+
+  @@id([clientId, produitId])
+}
+
+model Commande {
+  id Int @id @default(autoincrement())
+
+  clientId     Int
+  statut       String   @default("en_attente")
+  total        Float    @default(0)
+  dateCommande DateTime @default(now())
+
+  client User @relation(fields: [clientId], references: [id])
+
+  lignes    LigneCommande[]
+  paiement  Paiement?
+  livraison Livraison?
+  createdAt DateTime        @default(now())
+}
+
+model Paiement {
+
+  id Int @id @default(autoincrement())
+
+  commandeId Int @unique
+
+  montant Float
+
+  mode String
+
+  statut String @default("en_attente")
+
+
+  commande Commande @relation(fields: [commandeId], references: [id])
+
+
+  createdAt DateTime @default(now())
+
+}
+
+model LigneCommande {
+  commandeId Int
+  varianteId Int
+
+  quantiteAchetee Int
+  prixUnitaire    Float
+
+  commande Commande        @relation(fields: [commandeId], references: [id])
+  variante VarianteProduit @relation(fields: [varianteId], references: [id])
+
+  @@id([commandeId, varianteId])
+
+}
+
+
+model Panier {
+  id        Int @id @default(autoincrement())
+  clientId  Int @unique
+
+  client User @relation(fields: [clientId], references: [id])
+
+  items PanierItem[]
+
+  createdAt DateTime @default(now())
+}
+
+model PanierItem {
+
+  id Int @id @default(autoincrement())
+
+  panierId Int
+  produitId Int
+
+  quantite Int @default(1)
+
+  panier Panier @relation(fields: [panierId], references: [id])
+
+  produit Produit @relation(fields: [produitId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([panierId, produitId])
+
+}
+
+model Livraison {
+  id Int @id @default(autoincrement())
+
+  commandeId Int @unique
+
+  adresse String?
+
+  ville String?
+
+  codePostal String?
+
+  transporteur String?
+
+  numeroSuivi String?
+
+  statut String @default("en_preparation")
+
+  commande Commande @relation(fields: [commandeId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+ 
