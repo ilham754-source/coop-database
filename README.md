@@ -53,9 +53,6 @@ Créer ensuite un fichier `.env` dans le projet backend :
 ```env
 DATABASE_URL="postgresql://postgres:VOTRE_MOT_DE_PASSE@localhost:5432/coop_platform_db?schema=public"
 ```
-
-Ne jamais envoyer le fichier `.env` sur GitHub.
-
 ### 4. Appliquer les migrations
 
 Depuis le projet backend contenant Prisma :
